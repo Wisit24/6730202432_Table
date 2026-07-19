@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   SafeAreaView,
   ScrollView,
@@ -10,39 +12,43 @@ import {
   View,
 } from 'react-native';
 
-// 1. ข้อมูลสินค้าจำลองธีมโต๊ะไม้ (พร้อมอัปเดตลิงก์รูปภาพใหม่ให้แสดงผลได้ชัวร์)
-const products = [
-  {
-    id: '1',
-    name: 'โต๊ะทำงานไม้สักสไตล์มินิมอล (Teak Minimalist Desk)',
-    stock: 3,
-    category: 'Wooden Desks',
-    location: 'Warehouse A',
-    status: 'Active',
-    imageUrl: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&auto=format&fit=crop&q=60',
-  },
-  {
-    id: '2',
-    name: 'โต๊ะคอมพิวเตอร์ไม้โอ๊คปรับระดับได้ (Ergonomic Oak Desk)',
-    stock: 7,
-    category: 'Wooden Desks',
-    location: 'Warehouse B',
-    status: 'Active',
-    imageUrl: 'https://images.unsplash.com/photo-1595515106969-1ce29566ff1c?w=500&auto=format&fit=crop&q=60',
-  },
-  {
-    id: '3',
-    name: 'โต๊ะกินข้าวไม้สนรัสเซีย 6 ที่นั่ง (Pine Wood Dining Table)',
-    stock: 2,
-    category: 'Wooden Tables',
-    location: 'Showroom 1',
-    status: 'Active',
-    // เปลี่ยน URL รูปภาพใหม่ ป้องกันปัญหารูปภาพไม่แสดงผล
-    imageUrl: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?w=500&auto=format&fit=crop&q=60',
-  },
-];
+// ⚠️ สำคัญมาก: เอาลิงก์ Raw ที่ก๊อปปี้มาจากเว็บ GitHub ของคุณมาวางแทนที่ตรงนี้ครับ ⚠️
+const GITHUB_JSON_URL = 'https://raw.githubusercontent.com/Wisit24/6730202432_Table/refs/heads/main/products.json';
+
+// นิยามประเภทข้อมูลสำหรับ TypeScript (เนื่องจากคุณใช้ไฟล์ .tsx)
+interface Product {
+  id: string;
+  name: string;
+  stock: number;
+  category: string;
+  location: string;
+  status: string;
+  imageUrl: string;
+}
 
 export default function ProductsScreen() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // ดึงข้อมูลเมื่อหน้าจอเปิดขึ้นมา
+  useEffect(() => {
+    fetch(GITHUB_JSON_URL)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then((data: Product[]) => {
+        setProducts(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching products from GitHub:', error);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fdfbf7" />
@@ -78,37 +84,44 @@ export default function ProductsScreen() {
       </View>
 
       {/* --- ส่วนแสดงรายการสินค้า (Products List) --- */}
-      <ScrollView style={styles.productsList} showsVerticalScrollIndicator={false}>
-        {products.map((product) => (
-          <View key={product.id} style={styles.productCard}>
-            <View style={styles.productInfo}>
-              {/* รูปภาพสินค้า */}
-              <Image
-                source={{ uri: product.imageUrl }}
-                style={styles.productImage}
-                resizeMode="cover"
-              />
-              {/* รายละเอียดจำนวน/คลังสินค้า */}
-              <View style={styles.productDetails}>
-                <Text style={styles.stockText}>คงเหลือ: {product.stock} ตัว</Text>
-                <Text style={styles.categoryText}>หมวดหมู่: {product.category}</Text>
-                <Text style={styles.locationText}>สถานที่: {product.location}</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#A0522D" />
+          <Text style={styles.loadingText}>กำลังโหลดข้อมูลสินค้าจาก GitHub...</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.productsList} showsVerticalScrollIndicator={false}>
+          {products.map((product) => (
+            <View key={product.id} style={styles.productCard}>
+              <View style={styles.productInfo}>
+                {/* รูปภาพสินค้า */}
+                <Image
+                  source={{ uri: product.imageUrl }}
+                  style={styles.productImage}
+                  resizeMode="cover"
+                />
+                {/* รายละเอียดจำนวน/คลังสินค้า */}
+                <View style={styles.productDetails}>
+                  <Text style={styles.stockText}>คงเหลือ: {product.stock} ตัว</Text>
+                  <Text style={styles.categoryText}>หมวดหมู่: {product.category}</Text>
+                  <Text style={styles.locationText}>สถานที่: {product.location}</Text>
+                </View>
+                {/* ปุ่มสถานะด้านขวา */}
+                <View style={styles.productActions}>
+                  <TouchableOpacity style={styles.statusButton}>
+                    <Text style={styles.statusText}>{product.status}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.moreButton}>
+                    <Text style={styles.moreIcon}>›</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              {/* ปุ่มสถานะด้านขวา */}
-              <View style={styles.productActions}>
-                <TouchableOpacity style={styles.statusButton}>
-                  <Text style={styles.statusText}>{product.status}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.moreButton}>
-                  <Text style={styles.moreIcon}>›</Text>
-                </TouchableOpacity>
-              </View>
+              {/* ชื่อสินค้าด้านล่างการ์ด */}
+              <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
             </View>
-            {/* ชื่อสินค้าด้านล่างการ์ด */}
-            <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
 
       {/* --- แถบเมนูด้านล่าง (Bottom Navigation) --- */}
       <View style={styles.bottomNav}>
@@ -133,11 +146,10 @@ export default function ProductsScreen() {
   );
 }
 
-// 2. การกำหนดสไตล์ตกแต่งแอปพลิเคชัน (ปรับเป็นโทนสีไม้ธรรมชาติ)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fdfbf7', // ปรับพื้นหลังเป็นสีครีมงาช้างนวลๆ เข้ากับสีไม้
+    backgroundColor: '#fdfbf7',
   },
   header: {
     flexDirection: 'row',
@@ -162,7 +174,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#5C4033', // สีน้ำตาลเข้มเนื้อไม้
+    color: '#5C4033',
   },
   profileButton: {
     width: 30,
@@ -206,7 +218,7 @@ const styles = StyleSheet.create({
     color: '#3e2723',
   },
   addButton: {
-    backgroundColor: '#A0522D', // สีน้ำตาลส้มอิฐ/น้ำตาลทองเด่นชัดสำหรับปุ่ม Action
+    backgroundColor: '#A0522D',
     borderRadius: 8,
     paddingHorizontal: 15,
     paddingVertical: 10,
@@ -235,7 +247,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 15,
-    shadowColor: '#5c4033', // เปลี่ยนเงาให้มีโทนน้ำตาลจางๆ ดูนุ่มนวลขึ้น
+    shadowColor: '#5c4033',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -276,7 +288,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusButton: {
-    backgroundColor: '#8D6E63', // ปรับปุ่ม Active เป็นสีน้ำตาลช็อกโกแลตนม柔和
+    backgroundColor: '#8D6E63',
     borderRadius: 15,
     paddingHorizontal: 12,
     paddingVertical: 5,
@@ -302,7 +314,7 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3e2723', // สีน้ำตาลเข้มเกือบดำ อ่านง่าย
+    color: '#3e2723',
     lineHeight: 22,
   },
   bottomNav: {
@@ -324,5 +336,15 @@ const styles = StyleSheet.create({
   navText: {
     fontSize: 12,
     color: '#a1887f',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#795548',
+    fontSize: 14,
   },
 });
