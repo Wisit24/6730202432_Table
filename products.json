@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1",
+    "name": "โต๊ะทำงานไม้สักสไตล์มินิมอล (Teak Minimalist Desk)",
+    "stock": 3,
+    "category": "Wooden Desks",
+    "location": "Warehouse A",
+    "status": "Active",
+    "imageUrl": "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&auto=format&fit=crop&q=60"
+  },
+  {
+    "id": "2",
+    "name": "โต๊ะคอมพิวเตอร์ไม้โอ๊คปรับระดับได้ (Ergonomic Oak Desk)",
+    "stock": 7,
+    "category": "Wooden Desks",
+    "location": "Warehouse B",
+    "status": "Active",
+    "imageUrl": "https://images.unsplash.com/photo-1595515106969-1ce29566ff1c?w=500&auto=format&fit=crop&q=60"
+  },
+  {
+    "id": "3",
+    "name": "โต๊ะกินข้าวไม้สนรัสเซีย 6 ที่นั่ง (Pine Wood Dining Table)",
+    "stock": 2,
+    "category": "Wooden Tables",
+    "location": "Showroom 1",
+    "status": "Active",
+    "imageUrl": "https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?w=500&auto=format&fit=crop&q=60"
+  }
+]
