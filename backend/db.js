@@ -1,15 +1,13 @@
-const mysql = require('mysql2');
-require('dotenv').config();
+const mysql = require('mysql2/promise');
 
-// สร้าง Connection Pool
 const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'std6730202432',
+  password: process.env.DB_PASSWORD || 'vJ@7cT2p',
+  database: process.env.DB_NAME || 'ip_std6730202432',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 });
 
-module.exports = pool.promise();
+module.exports = pool;
