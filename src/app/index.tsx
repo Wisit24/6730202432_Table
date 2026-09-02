@@ -19,13 +19,17 @@ import AdminManagement from '../app/AdminManagement';
 const BASE_URL = 'http://119.59.102.161:3042/api';
 const PHP_REGISTER_URL = 'http://119.59.102.161:3042/api/register';
 
+// ==========================================
+// 1. INTERFACES (โครงสร้างข้อมูล Typescript)
+// ==========================================
 interface Product {
   id: number;
   name: string;
+  size?: string; // รองรับฟิลด์ขนาดจาก DB
   stock: number;
   price?: number;
   category: string;
-  location: string;
+  location: string; // ฟิลด์สถานที่เก็บ / ที่สร้าง
   status: string;
   imageUrl?: string;
   quantity?: number;
@@ -61,7 +65,9 @@ const showAlert = (title: string, msg: string) => {
 export default function HomeScreen() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   
-  // Auth State
+  // ==========================================
+  // 2. STATE MANAGEMENT (ตัวแปรสถานะต่างๆ ของระบบ)
+  // ==========================================
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -73,27 +79,39 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Filter State
+  // ตัวกรองสินค้า (Filter State)
   const [filterInStock, setFilterInStock] = useState<boolean>(false);
   const [filterOutOfStock, setFilterOutOfStock] = useState<boolean>(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('ทั้งหมด');
 
-  // Modal State
+  // Modal จัดการสินค้า (Admin)
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Cart, Slip & Promo State
+  // Modal รายละเอียดสินค้า
+  const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState<boolean>(false);
+  const [detailQuantity, setDetailQuantity] = useState<number>(1);
+
+  // Modal ขยายรูปภาพสินค้า
+  const [isImageZoomModalVisible, setIsImageZoomModalVisible] = useState<boolean>(false);
+  const [zoomedImageUrl, setZoomedImageUrl] = useState<string>('');
+
+  // ตะกร้าสินค้า, โค้ดส่วนลด และสลิป (Cart, Slip & Promo State)
   const [cart, setCart] = useState<Product[]>([]);
   const [cartModalVisible, setCartModalVisible] = useState<boolean>(false);
   const [paymentSlipUrl, setPaymentSlipUrl] = useState<string>('');
   const [promoCodeInput, setPromoCodeInput] = useState<string>('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; type: 'percent' | 'fixed'; value: number } | null>(null);
 
-  // Admin Orders State & Modal
+  // จัดการออเดอร์ (Admin Orders State & Modal)
   const [orders, setOrders] = useState<Order[]>([]);
   const [adminOrdersModalVisible, setAdminOrdersModalVisible] = useState<boolean>(false);
 
+  // ==========================================
+  // 3. API & HANDLERS (ฟังก์ชันจัดการการทำงานหลังบ้าน)
+  // ==========================================
   const handleLogin = async () => {
     if (!loginUsername || !loginPassword) return showAlert('แจ้งเตือน', 'กรุณากรอกข้อมูลให้ครบ');
     setAuthLoading(true);
@@ -245,11 +263,11 @@ export default function HomeScreen() {
             body: JSON.stringify({
               id: item.id,
               name: item.name,
-              size: '-',
+              size: item.size || '-',
               stock: newStock,
               price: item.price || 1790,
               category: item.category,
-              location: item.location,
+              location: item.location || 'Warehouse A',
               status: item.status,
               imageUrl: item.imageUrl,
               role: 'admin',
@@ -358,6 +376,9 @@ export default function HomeScreen() {
   }
   const totalCartAmount = Math.max(0, subtotalAmount - discountAmount);
 
+  // ==========================================
+  // 4. AUTHENTICATION VIEW (หน้าจอเข้าสู่ระบบ / สมัครสมาชิก)
+  // ==========================================
   if (!currentUser) {
     return (
       <SafeAreaView style={styles.authContainer}>
@@ -437,8 +458,12 @@ export default function HomeScreen() {
     );
   }
 
+  // ==========================================
+  // 5. MAIN DASHBOARD / SHOP SCREEN (หน้าจอหลักหลังเข้าสู่ระบบ)
+  // ==========================================
   return (
     <SafeAreaView style={styles.container}>
+      {/* 5.1 แถบเมนูด้านบนสุด (Header Navbar) */}
       <View style={styles.topHeader}>
         <Text style={styles.headerTitle}>Inventory Store</Text>
         <View style={styles.userSection}>
@@ -487,7 +512,6 @@ export default function HomeScreen() {
 
       <ScrollView style={styles.mainScrollView}>
         <View style={styles.pageContainer}>
-          {/* เรียกใช้งาน AdminManagement Component ที่รวมแดชบอร์ดและจัดการออเดอร์ไว้ด้วยกัน */}
           {currentUser.role === 'admin' && (
             <AdminManagement
               products={products}
@@ -508,6 +532,7 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.contentLayout}>
+            {/* 5.2 แถบตัวกรองสินค้าด้านข้าง (Sidebar Filter) */}
             <View style={styles.sidebar}>
               <View style={styles.filterCard}>
                 <Text style={styles.filterGroupTitle}>ประเภทโต๊ะ</Text>
@@ -560,6 +585,7 @@ export default function HomeScreen() {
               </View>
             </View>
 
+            {/* 5.3 พื้นที่แสดงรายการสินค้า (Product Grid Area) */}
             <View style={styles.productArea}>
               {loading ? (
                 <View style={styles.centerContainer}>
@@ -569,35 +595,48 @@ export default function HomeScreen() {
                 <View style={styles.gridContainer}>
                   {filteredProducts.map((product) => (
                     <View key={product.id} style={styles.productGridCard}>
-                      <View style={styles.heartIcon}>
-                        <Text style={{ fontSize: 16 }}>🤍</Text>
-                      </View>
+                      <TouchableOpacity 
+                        activeOpacity={0.9} 
+                        onPress={() => {
+                          setSelectedProductDetail(product);
+                          setDetailQuantity(1);
+                          setIsDetailModalVisible(true);
+                        }}
+                      >
+                        <View style={styles.heartIcon}>
+                          <Text style={{ fontSize: 16 }}>🤍</Text>
+                        </View>
 
-                      <Image
-                        source={{ uri: product.imageUrl || 'https://via.placeholder.com/200' }}
-                        style={styles.productCardImage}
-                        resizeMode="contain"
-                      />
+                        <Image
+                          source={{ uri: product.imageUrl || 'https://via.placeholder.com/200' }}
+                          style={styles.productCardImage}
+                          resizeMode="contain"
+                        />
 
-                      <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryBadgeText}>{product.category || 'โต๊ะอเนกประสงค์'}</Text>
-                      </View>
+                        <View style={styles.categoryBadge}>
+                          <Text style={styles.categoryBadgeText}>{product.category || 'โต๊ะอเนกประสงค์'}</Text>
+                        </View>
 
-                      <Text style={styles.productCardTitle} numberOfLines={2}>
-                        {product.name}
-                      </Text>
+                        <Text style={styles.productCardTitle} numberOfLines={2}>
+                          {product.name}
+                        </Text>
 
-                      <Text style={styles.priceText}>
-                        ฿{Number(product.price || 1790).toLocaleString('th-TH')}.00
-                      </Text>
+                        {/* แสดงขนาดและสถานที่สร้าง/จัดเก็บ */}
+                        <Text style={styles.infoSubText}>📏 ขนาด: {product.size || '-'}</Text>
+                        <Text style={styles.infoSubText}>📍 ที่สร้าง/แหล่งผลิต: {product.location || '-'}</Text>
 
-                      <Text style={styles.stockText}>
-                        คงเหลือในสต็อก: {product.stock} ชิ้น
-                      </Text>
+                        <Text style={styles.priceText}>
+                          ฿{Number(product.price || 1790).toLocaleString('th-TH')}.00
+                        </Text>
 
-                      <Text style={styles.shippingText}>
-                        {product.stock > 0 ? 'จัดส่ง 3 - 5 วันทำการ' : 'สินค้าหมดชั่วคราว'}
-                      </Text>
+                        <Text style={styles.stockText}>
+                          คงเหลือในสต็อก: {product.stock} ชิ้น
+                        </Text>
+
+                        <Text style={styles.shippingText}>
+                          {product.stock > 0 ? 'จัดส่ง 3 - 5 วันทำการ' : 'สินค้าหมดชั่วคราว'}
+                        </Text>
+                      </TouchableOpacity>
 
                       {currentUser.role === 'user' && (
                         <TouchableOpacity
@@ -636,6 +675,10 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
+      {/* ==========================================
+          6. MODALS (หน้าต่างป๊อปอัปต่างๆ ในระบบ)
+          ========================================== */}
+
       <ProductModal
         visible={modalVisible}
         isEditMode={isEditMode}
@@ -644,7 +687,106 @@ export default function HomeScreen() {
         onSave={handleSaveProduct}
       />
 
-      {/* Cart & Promo & Slip Modal */}
+      {/* 6.2 Modal รายละเอียดสินค้าขนาดใหญ่ */}
+      <Modal visible={isDetailModalVisible} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { maxWidth: 750 }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {selectedProductDetail && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
+                  
+                  {/* รูปภาพสินค้า */}
+                  <View style={{ flex: 1, minWidth: 260, backgroundColor: '#0b0f19', padding: 12, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#1f2937' }}>
+                    <TouchableOpacity 
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setZoomedImageUrl(selectedProductDetail.imageUrl || 'https://via.placeholder.com/200');
+                        setIsImageZoomModalVisible(true);
+                      }}
+                      style={{ width: '100%', alignItems: 'center' }}
+                    >
+                      <Image source={{ uri: selectedProductDetail.imageUrl || 'https://via.placeholder.com/200' }} style={{ width: '100%', height: 220 }} resizeMode="contain" />
+                      <Text style={{ color: '#60a5fa', fontSize: 11, marginTop: 8, fontWeight: 'bold' }}>🔍 คลิกเพื่อขยายรูปภาพ</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={{ flex: 1.2, minWidth: 260 }}>
+                    <View style={{ backgroundColor: '#dc2626', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginBottom: 8 }}>
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>BY ORDER / SPEC</Text>
+                    </View>
+
+                    <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#f3f4f6', marginBottom: 8, lineHeight: 22 }}>
+                      {selectedProductDetail.name}
+                    </Text>
+
+                    {/* ข้อมูลขนาดและที่สร้างในหน้า Modal รายละเอียด */}
+                    <Text style={{ fontSize: 13, color: '#9ca3af', marginBottom: 4 }}>📏 ขนาด: {selectedProductDetail.size || '-'}</Text>
+                    <Text style={{ fontSize: 13, color: '#9ca3af', marginBottom: 10 }}>📍 ที่สร้าง/แหล่งผลิต: {selectedProductDetail.location || '-'}</Text>
+
+                    <Text style={{ fontSize: 22, fontWeight: '900', color: '#ef4444', marginBottom: 6 }}>
+                      ฿{Number(selectedProductDetail.price || 1790).toLocaleString('th-TH')}.00
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#4ade80', marginBottom: 14 }}>📦 จัดส่ง 3 - 5 วันทำการ (สต็อก: {selectedProductDetail.stock} ชิ้น)</Text>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                      <Text style={styles.label}>จำนวน</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#374151', borderRadius: 8, backgroundColor: '#0b0f19' }}>
+                        <TouchableOpacity 
+                          style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+                          onPress={() => setDetailQuantity(Math.max(1, detailQuantity - 1))}>
+                          <Text style={{ color: '#fff', fontWeight: 'bold' }}>-</Text>
+                        </TouchableOpacity>
+                        <Text style={{ paddingHorizontal: 12, color: '#fff', fontWeight: 'bold' }}>{String(detailQuantity).padStart(2, '0')}</Text>
+                        <TouchableOpacity 
+                          style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+                          onPress={() => setDetailQuantity(Math.min(selectedProductDetail.stock, detailQuantity + 1))}>
+                          <Text style={{ color: '#fff', fontWeight: 'bold' }}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity 
+                      style={[styles.saveButton, { backgroundColor: '#2563eb', marginTop: 0 }]}
+                      onPress={() => {
+                        for (let i = 0; i < detailQuantity; i++) {
+                          handleAddToCart(selectedProductDetail);
+                        }
+                        setIsDetailModalVisible(false);
+                      }}>
+                      <Text style={styles.saveButtonText}>🛒 เพิ่มลงตะกร้า ({detailQuantity} ชิ้น)</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsDetailModalVisible(false)}>
+              <Text style={styles.cancelText}>✕ ปิดหน้าต่าง</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 6.3 Modal สำหรับแสดงรูปภาพขยายเต็มจอ */}
+      <Modal visible={isImageZoomModalVisible} animationType="fade" transparent={true}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.9)' }]}>
+          <View style={{ width: '100%', maxWidth: 700, alignItems: 'center', padding: 10 }}>
+            <Image 
+              source={{ uri: zoomedImageUrl }} 
+              style={{ width: '100%', height: 450, borderRadius: 12 }} 
+              resizeMode="contain" 
+            />
+            <TouchableOpacity 
+              style={[styles.cancelButton, { backgroundColor: '#1f2937', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8, marginTop: 20 }]} 
+              onPress={() => setIsImageZoomModalVisible(false)}
+            >
+              <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>✕ ปิดรูปภาพขยาย</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 6.4 Modal ตะกร้าสินค้า, โค้ดส่วนลด และสแกน QR จ่ายเงิน */}
       <Modal visible={cartModalVisible} animationType="fade" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, { maxWidth: 450 }]}>
@@ -762,6 +904,9 @@ export default function HomeScreen() {
   );
 }
 
+// ==========================================
+// 7. SUB-COMPONENT: ProductModal (เพิ่ม/แก้ไขสินค้า รองรับการเลือกรูปจากในเครื่อง)
+// ==========================================
 interface ModalProps {
   visible: boolean;
   isEditMode: boolean;
@@ -772,21 +917,31 @@ interface ModalProps {
 
 function ProductModal({ visible, isEditMode, editingProduct, onClose, onSave }: ModalProps) {
   const [name, setName] = useState('');
+  const [size, setSize] = useState('');
   const [stock, setStock] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('โต๊ะอเนกประสงค์');
+  const [location, setLocation] = useState('');
   const [image, setImage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (isEditMode && editingProduct) {
       setName(editingProduct.name || '');
+      setSize(editingProduct.size || '-');
       setStock(String(editingProduct.stock || 0));
       setPrice(String(editingProduct.price || 1790));
       setCategory(editingProduct.category || 'โต๊ะอเนกประสงค์');
+      setLocation(editingProduct.location || 'Warehouse A');
       setImage(editingProduct.imageUrl || '');
     } else {
-      setName(''); setStock('10'); setPrice('1790'); setCategory('โต๊ะอเนกประสงค์'); setImage('');
+      setName(''); 
+      setSize('-'); 
+      setStock('10'); 
+      setPrice('1790'); 
+      setCategory('โต๊ะอเนกประสงค์'); 
+      setLocation('Warehouse A'); 
+      setImage('');
     }
   }, [isEditMode, editingProduct, visible]);
 
@@ -795,16 +950,41 @@ function ProductModal({ visible, isEditMode, editingProduct, onClose, onSave }: 
     setStock(String(Math.max(0, currentStock + amount)));
   };
 
+  // ฟังก์ชันเลือกรูปจากในเครื่อง
+  const handlePickImageFromFile = () => {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e: any) => {
+        const file = e.target.files[0];
+        if (file) {
+          const localUrl = URL.createObjectURL(file);
+          setImage(localUrl);
+          showAlert('สำเร็จ', 'เลือกรูปภาพจากในเครื่องเรียบร้อย');
+        }
+      };
+      input.click();
+    } else {
+      const url = window.prompt('กรุณากรอก URL รูปภาพ หรือลิงก์ไฟล์รูปในเครื่อง:');
+      if (url) {
+        setImage(url);
+        showAlert('สำเร็จ', 'ตั้งค่ารูปภาพเรียบร้อย');
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     if (!name.trim()) return showAlert('ข้อผิดพลาด', 'กรุณากรอกชื่อสินค้า');
     setSubmitting(true);
     await onSave({
       id: editingProduct?.id,
       name: name.trim(),
+      size: size.trim() || '-',
       stock: Number(stock) || 0,
       price: Number(price) || 0,
       category: category,
-      location: 'Warehouse A',
+      location: location.trim() || 'Warehouse A',
       status: 'Active',
       imageUrl: image.trim() || 'https://via.placeholder.com/200',
     });
@@ -819,13 +999,16 @@ function ProductModal({ visible, isEditMode, editingProduct, onClose, onSave }: 
             <Text style={styles.modalTitle}>{isEditMode ? 'แก้ไขสินค้า & เติมสต็อก' : 'เพิ่มสินค้าใหม่'}</Text>
 
             <Text style={styles.label}>ชื่อสินค้า *</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} />
+            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="กรอกชื่อสินค้า..." placeholderTextColor="#a1a1aa" />
+
+            <Text style={styles.label}>ขนาด (Size)</Text>
+            <TextInput style={styles.input} value={size} onChangeText={setSize} placeholder="เช่น 120x60x75 cm" placeholderTextColor="#a1a1aa" />
 
             <Text style={styles.label}>ราคาสินค้า (บาท)</Text>
-            <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="numeric" />
+            <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="1790" placeholderTextColor="#a1a1aa" />
 
             <Text style={styles.label}>จำนวนสต็อก</Text>
-            <TextInput style={styles.input} value={stock} onChangeText={setStock} keyboardType="numeric" />
+            <TextInput style={styles.input} value={stock} onChangeText={setStock} keyboardType="numeric" placeholder="10" placeholderTextColor="#a1a1aa" />
 
             <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
               <TouchableOpacity style={styles.restockQuickBtn} onPress={() => handleAddStock(10)}>
@@ -853,8 +1036,31 @@ function ProductModal({ visible, isEditMode, editingProduct, onClose, onSave }: 
               ))}
             </View>
 
-            <Text style={styles.label}>URL รูปภาพ</Text>
-            <TextInput style={styles.input} value={image} onChangeText={setImage} />
+            <Text style={styles.label}>ที่สร้าง / แหล่งผลิต (Location)</Text>
+            <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="เช่น Warehouse A" placeholderTextColor="#a1a1aa" />
+
+            {/* ส่วนจัดการรูปภาพสินค้า */}
+            <Text style={styles.label}>รูปภาพสินค้า</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+              <TouchableOpacity style={[styles.attachSlipBtn, { flex: 1, backgroundColor: '#1d4ed8' }]} onPress={handlePickImageFromFile}>
+                <Text style={styles.attachSlipBtnText}>📁 เลือกรูปจากในเครื่อง</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput 
+              style={[styles.input, { fontSize: 11 }]} 
+              value={image} 
+              onChangeText={setImage} 
+              placeholder="หรือวาง URL รูปภาพที่นี่..." 
+              placeholderTextColor="#a1a1aa" 
+            />
+
+            {image ? (
+              <View style={{ alignItems: 'center', marginBottom: 12, backgroundColor: '#0b0f19', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#1f2937' }}>
+                <Image source={{ uri: image }} style={{ width: 100, height: 100, borderRadius: 6 }} resizeMode="contain" />
+                <Text style={{ color: '#4ade80', fontSize: 10, marginTop: 4 }}>โหลดรูปภาพสำเร็จ</Text>
+              </View>
+            ) : null}
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSubmit} disabled={submitting}>
               {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>บันทึกข้อมูล</Text>}
@@ -870,8 +1076,11 @@ function ProductModal({ visible, isEditMode, editingProduct, onClose, onSave }: 
   );
 }
 
+// ==========================================
+// 8. STYLESHEET (ชุดตกแต่งดีไซน์หน้าจอทั้งหมด)
+// ==========================================
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#090d16' }, // เปลี่ยนพื้นหลังให้มืดลงแบบพรีเมียม
+  container: { flex: 1, backgroundColor: '#090d16' },
   authContainer: { flex: 1, backgroundColor: '#030712', justifyContent: 'center', alignItems: 'center', padding: 20 },
   authCard: { backgroundColor: '#111827', borderRadius: 20, padding: 30, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: '#1f2937', shadowColor: '#dc2626', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
   authHeaderTitle: { fontSize: 24, fontWeight: '900', color: '#f3f4f6', marginBottom: 6, textAlign: 'center', letterSpacing: 0.5 },
@@ -972,8 +1181,9 @@ const styles = StyleSheet.create({
   categoryBadge: { alignSelf: 'flex-start', backgroundColor: '#082f49', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginBottom: 8, borderWidth: 1, borderColor: '#0369a1' },
   categoryBadgeText: { fontSize: 10, color: '#38bdf8', fontWeight: 'bold' },
 
-  productCardTitle: { fontSize: 14, fontWeight: '700', color: '#f3f4f6', lineHeight: 20, height: 40, marginBottom: 8 },
-  priceText: { fontSize: 18, fontWeight: '900', color: '#ef4444', marginBottom: 4 },
+  productCardTitle: { fontSize: 14, fontWeight: '700', color: '#f3f4f6', lineHeight: 20, height: 40, marginBottom: 6 },
+  infoSubText: { fontSize: 11, color: '#9ca3af', marginBottom: 2 },
+  priceText: { fontSize: 18, fontWeight: '900', color: '#ef4444', marginTop: 4, marginBottom: 4 },
   stockText: { fontSize: 12, color: '#9ca3af', marginBottom: 2, fontWeight: '500' },
   shippingText: { fontSize: 12, color: '#4ade80', fontWeight: '600', marginBottom: 12 },
 
