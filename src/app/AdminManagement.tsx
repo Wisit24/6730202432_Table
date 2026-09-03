@@ -8,7 +8,7 @@ interface AdminManagementProps {
   modalVisible: boolean;
   onCloseModal: () => void;
   onUpdateStatus: (orderId: string, status: 'อนุมัติแล้ว' | 'ปฏิเสธ') => void;
-  onOpenOrderModal: () => void; // ฟังก์ชันเปิด Modal จัดการออเดอร์
+  onOpenOrderModal: () => void;
 }
 
 export default function AdminManagement({
@@ -19,6 +19,9 @@ export default function AdminManagement({
   onUpdateStatus,
   onOpenOrderModal,
 }: AdminManagementProps) {
+  // State สำหรับเก็บ URL รูปสลิปที่ต้องการกดขยาย
+  const [zoomedSlipUrl, setZoomedSlipUrl] = useState<string | null>(null);
+
   // ยอดขายสะสมคงค้างตลอด (ไม่รีเซ็ต)
   const [persistentTotalSales, setPersistentTotalSales] = useState<number>(() => {
     if (typeof window !== 'undefined') {
@@ -58,7 +61,7 @@ export default function AdminManagement({
           <Text style={[styles.cardAmount, { color: '#16a34a' }]}>฿{persistentTotalSales.toLocaleString('th-TH')}.00</Text>
         </View>
 
-        {/* การ์ดออเดอร์รอตรวจสอบ (กดคลิกเพื่อเปิด Modal จัดการออเดอร์ได้) */}
+        {/* การ์ดออเดอร์รอตรวจสอบ */}
         <TouchableOpacity style={[styles.card, { flex: 1, minWidth: 180 }]} onPress={onOpenOrderModal}>
           <Text style={styles.cardTitle}>ออเดอร์รอตรวจสอบ</Text>
           <Text style={[styles.cardAmount, { color: '#2563eb' }]}>{pendingOrdersCount} รายการ</Text>
@@ -110,8 +113,16 @@ export default function AdminManagement({
 
                     {ord.slipUrl ? (
                       <View style={styles.slipContainer}>
-                        <Text style={styles.labelSlip}>สลิปโอนเงิน:</Text>
-                        <Image source={{ uri: ord.slipUrl }} style={styles.slipImage} resizeMode="contain" />
+                        <Text style={styles.labelSlip}>สลิปโอนเงิน (คลิกเพื่อขยาย):</Text>
+                        
+                        {/* ห่อหุ้มด้วย TouchableOpacity เพื่อให้กดคลิกเพื่อซูมรูปได้ */}
+                        <TouchableOpacity 
+                          activeOpacity={0.8}
+                          onPress={() => setZoomedSlipUrl(ord.slipUrl)}
+                        >
+                          <Image source={{ uri: ord.slipUrl }} style={styles.slipImage} resizeMode="contain" />
+                          <Text style={{ color: '#2563eb', fontSize: 10, marginTop: 4, textAlign: 'center', fontWeight: 'bold' }}>🔍 คลิกเพื่อขยายรูปสลิป</Text>
+                        </TouchableOpacity>
                       </View>
                     ) : null}
 
@@ -136,6 +147,27 @@ export default function AdminManagement({
 
             <TouchableOpacity style={styles.closeBtn} onPress={onCloseModal}>
               <Text style={styles.closeBtnText}>ปิดหน้าต่าง</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal สำหรับแสดงภาพสลิปขนาดใหญ่เมื่อถูกคลิก */}
+      <Modal visible={!!zoomedSlipUrl} animationType="fade" transparent={true}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.9)' }]}>
+          <View style={{ width: '100%', maxWidth: 700, alignItems: 'center', padding: 10 }}>
+            {zoomedSlipUrl && (
+              <Image 
+                source={{ uri: zoomedSlipUrl }} 
+                style={{ width: '100%', height: 450, borderRadius: 12 }} 
+                resizeMode="contain" 
+              />
+            )}
+            <TouchableOpacity 
+              style={{ backgroundColor: '#1f2937', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8, marginTop: 20, borderWidth: 1, borderColor: '#374151' }} 
+              onPress={() => setZoomedSlipUrl(null)}
+            >
+              <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>✕ ปิดรูปภาพขยาย</Text>
             </TouchableOpacity>
           </View>
         </View>
